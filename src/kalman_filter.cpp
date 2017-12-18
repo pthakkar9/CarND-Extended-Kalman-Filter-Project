@@ -22,21 +22,67 @@ void KalmanFilter::Init(VectorXd &x_in, MatrixXd &P_in, MatrixXd &F_in,
 
 void KalmanFilter::Predict() {
   /**
-  TODO:
+  TODO: Done
     * predict the state
   */
+
+  x_ = F_ * x_;
+  P_ = F_ * P_ * F_.transpose() + Q_;
 }
 
 void KalmanFilter::Update(const VectorXd &z) {
   /**
-  TODO:
+  TODO: Done
     * update the state by using Kalman Filter equations
   */
+
+  VectorXd z_pred = H_ * x_;
+  VectorXd y = z - z_pred;
+  MatrixXd Ht = H_.transpose();
+  MatrixXd S = H_ * P_ * Ht + R_;
+  MatrixXd K = P_ * Ht * S.inverse();
+
+  // new estimate
+  x_ = x_ + (K * y);
+  MatrixXd I = MatrixXd::Identity(4, 4);
+  P_ = (I - K * H_) * P_;
 }
 
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
   /**
-  TODO:
+  TODO: Done
     * update the state by using Extended Kalman Filter equations
   */
+
+  float px = x_(0);
+  float py = x_(1);
+  float vx = x_(2);
+  float vy = x_(3);
+
+  // nonlinear prediction
+  float rho = sqrt(px*px + py*py);
+  float phi = atan2(py, px);
+  float rhodot = (px*vx + py*vy) / rho;
+  VectorXd z_pred(3);
+  z_pred << rho, phi, rhodot;
+
+  VectorXd y = z - z_pred;
+  //normalize angle
+  const double PI = atan2(0, -1);
+  if(y(1) > PI){
+    y(1) -= 2*PI;
+  }
+  else if(y(1) < -PI){
+    y(1) += 2*PI;
+  } 
+
+  MatrixXd Ht = H_.transpose();
+  MatrixXd S = H_ * P_ * Ht + R_;
+  MatrixXd K = P_ * Ht * S.inverse();
+  
+  // new estimate
+  x_ = x_ + (K * y);
+  MatrixXd I = MatrixXd::Identity(4, 4);
+  P_ = (I - K * H_) * P_;
+
 }
